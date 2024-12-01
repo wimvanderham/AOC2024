@@ -48,6 +48,17 @@ DEFINE TEMP-TABLE ttLine
 
    INDEX indLine IS UNIQUE IDLine.
 
+DEFINE TEMP-TABLE ttLeft
+   FIELD IDLeft AS INTEGER 
+   FIELD iDistance AS INTEGER 
+   FIELD SimilarityScore AS INT64  
+INDEX indID IS PRIMARY IDLeft.
+
+DEFINE TEMP-TABLE ttRight
+   FIELD IDRight    AS INTEGER 
+   FIELD SimilarityScore AS INT64  
+   INDEX indID IS PRIMARY IDRight.
+
 /* ********************  Preprocessor Definitions  ******************** */
 
 {AOC_session.i}
@@ -141,6 +152,16 @@ DO iLine = 1 TO NUM-ENTRIES (lcInput, "~n"):
       ttLine.cInputLine = cLine
       .
 
+   CREATE ttLeft.
+   ASSIGN
+      ttLeft.IDLeft = INTEGER (ENTRY (1, ttLine.cInputLine, " "))
+   .
+   
+   CREATE ttRight.
+   ASSIGN 
+      ttRight.IDRight = INTEGER (TRIM (SUBSTRING (ttLine.cInputLine, INDEX (ttLine.cInputLine, " "))))
+   .
+   
 END. /* ReadBlock: */
 
 IF lvlShow THEN 
@@ -152,6 +173,16 @@ END.
 IF lPart[1] THEN 
 DO:
    /* Process Part One */
+   FIND FIRST ttLeft.
+   FIND FIRST ttRight.
+   REPEAT WHILE AVAILABLE ttLeft:
+      ASSIGN 
+         ttLeft.iDistance = ABSOLUTE (ttLeft.IDLeft - ttRight.IDRight)
+      .
+      iSolution = iSolution + ttLeft.iDistance.
+      FIND NEXT ttLeft NO-ERROR.
+      FIND NEXT ttRight NO-ERROR.
+   END.
    OUTPUT TO "clipboard".
    PUT UNFORMATTED iSolution SKIP.
    OUTPUT CLOSE.
@@ -166,6 +197,14 @@ IF lPart[2] THEN
 DO:
 
    iSolution = 0.
+   FOR EACH ttLeft:
+      FOR EACH ttRight 
+      WHERE ttRight.IDRight = ttLeft.IDLeft:
+         ACCUM "" (COUNT).
+      END.
+      ttLeft.SimilarityScore = ttLeft.IDLeft * (ACCUM COUNT "").
+      iSolution = iSolution + ttLeft.SimilarityScore.
+   END.
    
    OUTPUT TO "clipboard".
    PUT UNFORMATTED iSolution SKIP.
